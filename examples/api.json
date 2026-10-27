@@ -1,0 +1,110 @@
+{
+  "name": "Flaky payments API",
+  "description": "Set your app's payments base URL to http://localhost:8080 and watch how it copes.",
+  "port": 8080,
+  "routes": [
+    {
+      "name": "charge: retry storm",
+      "match": {
+        "method": "POST",
+        "path": "/v1/charges"
+      },
+      "responses": [
+        {
+          "status": 500,
+          "json": {
+            "error": "internal_error"
+          }
+        },
+        {
+          "status": 503,
+          "headers": {
+            "Retry-After": "1"
+          },
+          "json": {
+            "error": "unavailable"
+          }
+        },
+        {
+          "status": 200,
+          "delay": "300ms",
+          "json": {
+            "id": "ch_{{uuid}}",
+            "status": "succeeded"
+          }
+        }
+      ]
+    },
+    {
+      "name": "customers on slow 3G",
+      "match": {
+        "method": "GET",
+        "path": "/v1/customers/*"
+      },
+      "responses": [
+        {
+          "status": 200,
+          "network": "slow-3g",
+          "json": {
+            "id": "cus_1",
+            "email": "asha@example.com"
+          }
+        }
+      ]
+    },
+    {
+      "name": "refunds drop the connection",
+      "match": {
+        "path": "/v1/refunds"
+      },
+      "responses": [
+        {
+          "fault": "drop"
+        },
+        {
+          "status": 200,
+          "json": {
+            "id": "re_1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "event list cut off mid-body",
+      "match": {
+        "path": "/v1/events"
+      },
+      "responses": [
+        {
+          "status": 200,
+          "json": {
+            "data": [
+              {
+                "id": "evt_1"
+              },
+              {
+                "id": "evt_2"
+              }
+            ]
+          },
+          "fault": "truncate"
+        }
+      ]
+    },
+    {
+      "name": "echo the request",
+      "match": {
+        "method": "POST",
+        "path": "/v1/echo"
+      },
+      "responses": [
+        {
+          "json": {
+            "you_sent": "{{request.json.name}}",
+            "call": "{{seq}}"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rehearse"
+version = "0.1.0"
+description = "Rehearse the worst day of your integrations: scripted webhook timelines, flaky mock APIs and network faults from one JSON file."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["webhooks", "testing", "mock-server", "fault-injection", "chaos", "api", "http", "developer-tools"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = []  # standard library only
+
+[project.scripts]
+rehearse = "rehearse.cli:main"
+
+[tool.setuptools]
+packages = ["rehearse"]

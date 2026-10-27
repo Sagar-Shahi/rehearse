@@ -1,0 +1,198 @@
+{
+  "name": "Payment webhook edge cases",
+  "description": "Run against `rehearse demo-app`, or point target at your own app and adjust the paths.",
+  "target": "http://localhost:3000",
+  "vars": {
+    "secret": "whsec_test_123",
+    "order": "ord_1001",
+    "amount": 4200
+  },
+  "steps": [
+    {
+      "name": "happy path",
+      "send": {
+        "path": "/webhooks/payments",
+        "json": {
+          "id": "evt_{{uuid}}",
+          "type": "payment.created",
+          "order": "{{order}}",
+          "amount": "{{amount}}",
+          "created": "{{now}}"
+        },
+        "sign": {
+          "secret": "{{secret}}",
+          "format": "stripe"
+        }
+      },
+      "expect": {
+        "status": "2xx"
+      }
+    },
+    {
+      "wait": "1s"
+    },
+    {
+      "name": "body is not valid JSON",
+      "send": {
+        "path": "/webhooks/payments",
+        "json": {
+          "id": "evt_{{uuid}}",
+          "type": "payment.created",
+          "order": "{{order}}",
+          "amount": "{{amount}}",
+          "created": "{{now}}"
+        },
+        "sign": {
+          "secret": "{{secret}}",
+          "format": "stripe"
+        },
+        "corrupt": "invalid_json"
+      },
+      "expect": {
+        "status": [
+          400,
+          422
+        ]
+      }
+    },
+    {
+      "name": "signature does not match",
+      "send": {
+        "path": "/webhooks/payments",
+        "json": {
+          "id": "evt_{{uuid}}",
+          "type": "payment.created",
+          "order": "{{order}}",
+          "amount": "{{amount}}",
+          "created": "{{now}}"
+        },
+        "sign": {
+          "secret": "{{secret}}",
+          "format": "stripe"
+        },
+        "corrupt": "bad_signature"
+      },
+      "expect": {
+        "status": [
+          400,
+          401,
+          403
+        ]
+      }
+    },
+    {
+      "name": "same event delivered 3 times",
+      "repeat": 3,
+      "every": "100ms",
+      "send": {
+        "path": "/webhooks/payments",
+        "json": {
+          "id": "evt_duplicate_1",
+          "type": "payment.created",
+          "order": "{{order}}",
+          "amount": "{{amount}}",
+          "created": "{{now}}"
+        },
+        "sign": {
+          "secret": "{{secret}}",
+          "format": "stripe"
+        }
+      },
+      "expect": {
+        "status": "2xx"
+      }
+    },
+    {
+      "name": "events arrive out of order",
+      "shuffle": [
+        {
+          "id": "succeeded",
+          "send": {
+            "path": "/webhooks/payments",
+            "json": {
+              "id": "evt_{{uuid}}",
+              "type": "payment.succeeded",
+              "order": "{{order}}",
+              "amount": "{{amount}}",
+              "created": "{{now}}"
+            },
+            "sign": {
+              "secret": "{{secret}}",
+              "format": "stripe"
+            }
+          },
+          "expect": {
+            "status": [
+              200,
+              409
+            ]
+          }
+        },
+        {
+          "id": "refunded",
+          "send": {
+            "path": "/webhooks/payments",
+            "json": {
+              "id": "evt_{{uuid}}",
+              "type": "payment.refunded",
+              "order": "{{order}}",
+              "amount": "{{amount}}",
+              "created": "{{now}}"
+            },
+            "sign": {
+              "secret": "{{secret}}",
+              "format": "stripe"
+            }
+          },
+          "expect": {
+            "status": [
+              200,
+              409
+            ]
+          }
+        },
+        {
+          "id": "created",
+          "send": {
+            "path": "/webhooks/payments",
+            "json": {
+              "id": "evt_{{uuid}}",
+              "type": "payment.created",
+              "order": "{{order}}",
+              "amount": "{{amount}}",
+              "created": "{{now}}"
+            },
+            "sign": {
+              "secret": "{{secret}}",
+              "format": "stripe"
+            }
+          },
+          "expect": {
+            "status": [
+              200,
+              409
+            ]
+          }
+        }
+      ],
+      "seed": 7
+    },
+    {
+      "name": "receiver recovers after an outage",
+      "send": {
+        "path": "/webhooks/flaky",
+        "json": {
+          "id": "evt_flaky_{{uuid}}",
+          "type": "payment.created"
+        }
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": "200ms",
+        "until": {
+          "status": 200
+        }
+      }
+    }
+  ]
+}
