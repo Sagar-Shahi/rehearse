@@ -22,8 +22,18 @@ jobs:
         run: python -m unittest discover -s tests -t . -v
       - name: Validate the bundled examples
         run: python -m rehearse validate examples/*.json
-      - name: End to end — run the example scenario against the demo app
+      - name: End to end, run the example scenario against the demo app
         run: |
-          python -m rehearse demo-app --port 3000 &
-          sleep 1
-          python -m rehearse send examples/webhook.json --speed 10
+          python -m rehearse demo-app --port 3000 > demo-app.log 2>&1 &
+          # Wait until the port accepts connections instead of guessing with a fixed sleep.
+          for i in $(seq 1 40); do
+            if python -c "import socket; socket.create_connection(('127.0.0.1', 3000), 1).close()" 2>/dev/null; then
+              break
+            fi
+            sleep 0.5
+          done
+          if ! python -m rehearse send examples/webhook.json --speed 10; then
+            echo "--- demo-app log ---"
+            cat demo-app.log
+            exit 1
+          fi
