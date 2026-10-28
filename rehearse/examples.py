@@ -29,7 +29,7 @@ def _post(body: dict, **extra: object) -> dict:
 WEBHOOK = {
     "name": "Payment webhook edge cases",
     "description": "Run against `rehearse demo-app`, or point target at your own app and adjust the paths.",
-    "target": "http://localhost:3000",
+    "target": "http://127.0.0.1:3000",
     "vars": {"secret": "whsec_test_123", "order": "ord_1001", "amount": 4200},
     "steps": [
         {"name": "happy path", "send": _post(_event("payment.created")), "expect": {"status": "2xx"}},
