@@ -1,0 +1,24 @@
+name: Bug report
+description: Something in Rehearse did not behave as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Scenario file
+      description: The smallest JSON scenario that shows the problem. Remove any real secrets.
+      render: json
+  - type: input
+    id: version
+    attributes:
+      label: Rehearse and Python version
+      placeholder: "rehearse 0.1.0, Python 3.12, macOS"
+    validations:
+      required: true

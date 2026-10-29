@@ -37,3 +37,20 @@ jobs:
             cat demo-app.log
             exit 1
           fi
+
+  package:
+    name: pip install works
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install into a clean virtualenv and run the command
+        run: |
+          python -m venv /tmp/clean
+          /tmp/clean/bin/pip install .
+          cd /tmp   # leave the repo so the installed package is the one being tested
+          /tmp/clean/bin/rehearse --version
+          /tmp/clean/bin/rehearse init /tmp/ex
+          /tmp/clean/bin/rehearse validate /tmp/ex/*.json

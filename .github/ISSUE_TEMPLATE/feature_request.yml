@@ -1,0 +1,17 @@
+name: Feature request
+description: A failure you want to be able to rehearse
+labels: [enhancement]
+body:
+  - type: textarea
+    id: failure
+    attributes:
+      label: Which failure do you want to rehearse?
+      description: Describe the real-world situation, for example "the provider retries with a stale signature".
+    validations:
+      required: true
+  - type: textarea
+    id: sketch
+    attributes:
+      label: How could it look in a scenario file?
+      description: An optional JSON sketch of the keys you would like.
+      render: json

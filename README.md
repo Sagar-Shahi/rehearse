@@ -1,70 +1,54 @@
+<div align="center">
+
 # Rehearse
 
-**Rehearse the worst day of your integrations.** Script webhook timelines, flaky APIs and network faults in one JSON
-file, run them against `localhost`, and share the file with your team.
+**Rehearse the worst day of your integrations.**<br>
+Script webhook timelines, flaky APIs and network faults in one JSON file, then run them against `localhost`.
 
 [![CI](https://github.com/Sagar-Shahi/rehearse/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagar-Shahi/rehearse/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)
-![License](https://img.shields.io/badge/license-MIT-green)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+<img src="docs/demo.svg" alt="Terminal showing rehearse sending ten webhook requests, including broken JSON, a bad signature, duplicates and out-of-order events, and all of them passing" width="720">
+
+</div>
+
+## Why
 
 Your app talks to payment gateways, auth providers and other people's webhooks. The happy path is easy to test. The
 questions that cause incidents are not:
 
 - What if `payment.refunded` arrives **before** `payment.succeeded`?
 - What if the provider returns a 500 on the **second** retry?
-- What if the connection drops halfway through a response? Or the same event is delivered **three times**?
+- What if the connection drops halfway through a response, or the same event arrives **three times**?
 
-Today that means temporary mock code you forget to delete, or clicking "resend" in a dashboard. Rehearse turns each
-of those situations into a file you can run, repeat, and commit.
+Today that means temporary mock code you forget to delete, or clicking "resend" in a dashboard. Rehearse turns each of
+those situations into a file you can run, repeat, commit and share.
 
-## 60 seconds
+## Try it in 60 seconds
 
 ```bash
-pip install -e .                  # or just use: python -m rehearse ...
-rehearse init examples            # writes example scenarios
-rehearse demo-app &               # a small webhook receiver on :3000
-rehearse send examples/webhook.json
+git clone https://github.com/Sagar-Shahi/rehearse && cd rehearse
+python -m rehearse demo-app &                  # a sample webhook receiver on :3000
+python -m rehearse send examples/webhook.json  # the run shown above
 ```
 
-```text
-Payment webhook edge cases
-[ ok ] happy path  (200)
-[ ok ] wait 1s  (1.00s)
-[ ok ] body is not valid JSON  (400)
-[ ok ] signature does not match  (401)
-[ ok ] same event delivered 3 times  (200, repeat 1/3)
-[ ok ] same event delivered 3 times  (200, repeat 2/3)
-[ ok ] same event delivered 3 times  (200, repeat 3/3)
-[info] shuffle seed=7  (created > succeeded > refunded)
-[ ok ]   created  (200)
-[ ok ]   succeeded  (200)
-[ ok ]   refunded  (200)
-[ ok ] receiver recovers after an outage  (200, 3 attempts)
+No install and no dependencies. Python 3.10 or newer is all you need. To get the `rehearse` command, run `pip install .`.
 
-Timeline (total 1.62s)
-  0.00s |#                                   | happy path
-  0.00s |----------------------              | wait 1s
-  1.00s |                      #             | body is not valid JSON
-  1.01s |                      #             | signature does not match
-  1.01s |                      #             | same event delivered 3 times
-  1.11s |                        #           | same event delivered 3 times
-  1.21s |                          #         | same event delivered 3 times
-  1.21s |                          #         |   created
-  1.22s |                          #         |   succeeded
-  1.22s |                          #         |   refunded
-  1.22s |                           #########| receiver recovers after an outage
+> [!TIP]
+> Point `target` at your own app and change the paths to rehearse it for real. Run `rehearse init` to write editable copies of the examples.
 
-all 10 requests passed in 1.62s
-```
+## Three tools, one file format
 
-Point `target` at your own app and edit the paths to rehearse it for real.
+| Command | What it does |
+|---------|--------------|
+| **`rehearse send`** | Pushes awkward events *at your app*: signed, corrupted, duplicated, delayed, reordered, with retries and expectations |
+| **`rehearse serve`** | Runs a local API *your app calls* that fails on purpose: error sequences, latency, 3G throttling, dropped or cut-off responses |
+| **`rehearse record`** | Captures real requests into a scenario file you can replay and share, timing included |
 
-## Three tools in one file format
-
-### 1. `rehearse send`: push awkward events at your app
-
-A timeline of signed, corrupted, repeated, delayed and reordered requests, each with an expectation.
+<details>
+<summary><b>Example: send a timeline of events</b></summary>
 
 ```json
 {
@@ -90,12 +74,15 @@ A timeline of signed, corrupted, repeated, delayed and reordered requests, each 
 }
 ```
 
-Built in: HMAC signing (Stripe, GitHub or plain hex), `corrupt` (truncate, invalid JSON, empty, garbage, bad
-signature), `repeat` for duplicate delivery, `parallel` for races, `shuffle` for out-of-order events (the seed is printed so
-a failing order can be replayed), `retry` that resends the *same* payload like a real provider, and `expect` on status,
+Built in: HMAC signing (Stripe, GitHub or plain hex), `corrupt` (truncate, invalid JSON, empty, garbage, bad signature),
+`repeat` for duplicate delivery, `parallel` for races, `shuffle` for out-of-order events (the seed is printed so a
+failing order can be replayed), `retry` that resends the *same* payload like a real provider, and `expect` on status,
 body, latency or a specific network error.
 
-### 2. `rehearse serve`: a third-party API that misbehaves on purpose
+</details>
+
+<details>
+<summary><b>Example: a third-party API that misbehaves on purpose</b></summary>
 
 Change your app's base URL to `http://localhost:8080`. No changes to your source code.
 
@@ -119,34 +106,45 @@ Change your app's base URL to `http://localhost:8080`. No changes to your source
 ```
 
 Each route plays a **sequence** (500, then 503, then 200), and each response can add latency, a network profile
-(`4g`, `3g`, `slow-3g`, `2g`, or your own latency, jitter and bandwidth) or a transport fault: `drop`, `reset`, `truncate`
-(body cut off mid-stream), `garbage` (not HTTP) and `hang` (silence until your timeout fires). Set `upstream` to
-proxy everything else to the real API, so you can add faults to real traffic. Your test code can read what your client
-actually did from `GET /__rehearse/calls`.
+(`4g`, `3g`, `slow-3g`, `2g`, or your own latency, jitter and bandwidth) or a transport fault: `drop`, `reset`,
+`truncate` (body cut off mid-stream), `garbage` (not HTTP) and `hang` (silence until your timeout fires). Set
+`upstream` to proxy everything else to the real API, so you can add faults to real traffic. Your test code can read what
+your client actually did from `GET /__rehearse/calls`.
 
-### 3. `rehearse record`: capture once, replay anywhere
+</details>
+
+<details>
+<summary><b>Example: capture once, replay anywhere</b></summary>
 
 ```bash
-rehearse record --port 9000 --out bug-4812.json          # point a webhook tunnel at :9000, trigger the bug
+rehearse record --port 9000 --out bug-4812.json              # point a webhook tunnel at :9000, trigger the bug
 rehearse send bug-4812.json --target http://localhost:3000   # replay the exact sequence, timing included
 ```
 
 The scenario file keeps bodies, headers and the gaps between requests. Commit it, attach it to the ticket, and everyone
 reproduces the same sequence locally. Add `--forward URL` to relay requests to a real service while recording.
 
+</details>
+
 ## Use it in CI
 
 ```yaml
-- run: rehearse send scenarios/webhooks.json --target http://localhost:3000 --speed 10
+- run: rehearse send scenarios/webhooks.json --target http://127.0.0.1:3000 --speed 10
 ```
 
 Exit code `0` means every expectation held, `1` means one failed, `2` means the file was wrong. Add `--json` for
-machine-readable results. `rehearse validate scenarios/*.json` catches typos before they run; unknown keys are
+machine-readable results. `rehearse validate scenarios/*.json` catches typos before they run, and unknown keys are
 errors with a "did you mean" hint.
 
-## How it compares
+## Documentation
 
-Rehearse does not replace the tools below. It fills the gap between them.
+- **[Scenario format reference](docs/scenario-format.md)**: every key, fault, network profile and variable
+- [Contributing](CONTRIBUTING.md) and the [issue tracker](https://github.com/Sagar-Shahi/rehearse/issues)
+
+<details>
+<summary><b>How it compares to other tools</b></summary>
+
+Rehearse does not replace these tools. It fills the gap between them.
 
 | Tool | Great at | Where Rehearse differs |
 |------|----------|------------------------|
@@ -159,7 +157,10 @@ Rehearse does not replace the tools below. It fills the gap between them.
 What Rehearse adds is one dependency-free file format that drives **both** directions (events *to* your app, failures
 *from* the APIs it calls) plus record and replay.
 
-## Known limits
+</details>
+
+<details>
+<summary><b>Known limits</b></summary>
 
 Rehearse is an early release (0.1) built for local development and CI, not load testing.
 
@@ -167,7 +168,10 @@ Rehearse is an early release (0.1) built for local development and CI, not load 
 - Faults are injected at the HTTP-response level, not by a real network proxy. For packet-level conditions use Toxiproxy alongside it.
 - Scenario files are JSON (no comments). Everything is configured in the file; there is no GUI yet.
 
-## Roadmap
+</details>
+
+<details>
+<summary><b>Roadmap and good first issues</b></summary>
 
 - [ ] A local web UI: a visual timeline editor on top of the same scenario files
 - [ ] Import from HAR files and `curl` commands
@@ -176,19 +180,15 @@ Rehearse is an early release (0.1) built for local development and CI, not load 
 - [ ] Probabilistic faults ("1 in 10 requests fails") for soak tests
 - [ ] OpenAPI-aware mocking
 
-## Documentation
-
-- [Scenario format reference](docs/scenario-format.md): every key, fault, profile and variable
-- [CONTRIBUTING.md](CONTRIBUTING.md)
+</details>
 
 ## Development
 
 ```bash
 python -m unittest discover -s tests -t .     # 74 tests, about 6 seconds, real local sockets
-python -m rehearse --help
 ```
 
-Standard library only. Python 3.10+.
+Standard library only. CI runs on Ubuntu and macOS with Python 3.10, 3.12 and 3.13.
 
 ## License
 
