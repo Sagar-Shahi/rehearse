@@ -9,3 +9,10 @@ dist/
 .DS_Store
 recorded.json
 *.tmp
+
+# Secrets and local configuration: never commit these
+.env
+.env.*
+!.env.example
+*.pem
+*.key
