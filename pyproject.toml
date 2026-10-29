@@ -20,6 +20,11 @@ classifiers = [
 ]
 dependencies = []  # standard library only
 
+[project.urls]
+Homepage = "https://github.com/Sagar-Shahi/rehearse"
+Issues = "https://github.com/Sagar-Shahi/rehearse/issues"
+Documentation = "https://github.com/Sagar-Shahi/rehearse/blob/main/docs/scenario-format.md"
+
 [project.scripts]
 rehearse = "rehearse.cli:main"
 
